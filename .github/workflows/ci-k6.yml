@@ -52,31 +52,27 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Start test server (background) and wait
-        run: |
-          # start the test server in the background and save its pid
-          nohup npm run start:test-server > server.log 2>&1 &
-          echo $! > server.pid
-          # wait for the server to respond on BASE_URL (default http://localhost:3000)
-          for i in $(seq 1 20); do
-            if curl -sSf "$BASE_URL" >/dev/null 2>&1; then
-              echo "Test server is up"
-              break
-            fi
-            echo "Waiting for test server... ($i)"
-            sleep 1
-          done
-          # print a short tail of the server log for debugging
-          tail -n 50 server.log || true
 
-      - name: Run Cypress (headless) and capture traces
-        run: npx cypress run --headless
+      - name: Run Cypress (official GitHub Action) — start server + tests
+        uses: cypress-io/github-action@v5
+        with:
+          start: npm run start:test-server
+          wait-on: ${{ env.BASE_URL }}
+          wait-on-timeout: 60
+          command: npx cypress run --headless --reporter mocha-junit-reporter --reporter-options mochaFile=reports/junit-$(date +%s).xml
 
       - name: Upload traces artifact
         uses: actions/upload-artifact@v4
         with:
           name: traces
           path: out
+
+      - name: Upload Cypress report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-report
+          path: reports
 
   fakerize:
     name: Fakerize traces
@@ -125,10 +121,12 @@ jobs:
       - name: Show BASE_URL
         run: echo "BASE_URL is $BASE_URL"
 
-      - name: Run k6 in Docker
+      - name: Run k6 in Docker and save human-readable + JSON summary
         run: |
           docker --version || true
-          docker run --rm -v "${{ github.workspace }}:/scripts" -w /scripts grafana/k6 run k6-script.js --env BASE_URL=${{ env.BASE_URL }}
+          mkdir -p out
+          # run k6, export JSON summary and capture stdout to a human readable file
+          docker run --rm -v "${{ github.workspace }}:/scripts" -w /scripts grafana/k6 run k6-script.js --env BASE_URL=${{ env.BASE_URL }} --summary-export=out/k6-summary.json | tee out/k6-run.txt
 
       - name: Upload k6 results
         uses: actions/upload-artifact@v4
