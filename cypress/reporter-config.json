@@ -1,0 +1,6 @@
+{
+  "reportDir": "cypress/results/json",
+  "overwrite": false,
+  "html": false,
+  "json": true
+}

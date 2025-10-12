@@ -71,3 +71,20 @@ To scale the run (more VUs / more iterations) edit the top of `k6-script.js` or 
 ```pwsh
 k6 run --vus 10 --iterations 100 k6-script.js
 ```
+
+CI test report (HTML)
+--------------------
+When the CI `capture` job runs it now generates a human-friendly HTML test report (mochawesome) and publishes it to GitHub Pages. The job also uploads the `public/` folder as an artifact.
+
+To generate the same report locally:
+
+```pwsh
+# run tests (Chrome) and produce JSON reports
+npm run test:chrome
+
+# merge JSON reports and create HTML
+npm run report:merge
+npm run report:generate
+
+# open public/index.html in your browser
+```

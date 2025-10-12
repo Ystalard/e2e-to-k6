@@ -53,15 +53,43 @@ jobs:
         run: npm ci
 
 
-      - name: Run Cypress (official GitHub Action) — start server + tests
-        uses: cypress-io/github-action@v5
+      - name: Run Cypress tests (mochawesome)
+        run: |
+          # start the server in background
+          nohup npm run start:test-server > server.log 2>&1 &
+          echo $! > server.pid
+          # give server a few seconds
+          sleep 3
+          # run tests (continue even if tests fail so we can gather reports)
+          npm run test:chrome || true
+
+      - name: Copy videos & screenshots into public
+        run: |
+          mkdir -p public/videos public/screenshots
+          cp -r cypress/videos/* public/videos/ || true
+          cp -r cypress/screenshots/* public/screenshots/ || true
+
+      - name: Merge mochawesome JSON files
+        run: npm run report:merge
+
+      - name: Generate HTML report
+        run: npm run report:generate
+
+      - name: Post test annotations
+        uses: dorny/test-reporter@v1
+        if: always()
         with:
-          start: npm run start:test-server
-          # wait for the static form page which returns 200; root (/) returns 404 in this app
-          wait-on: ${{ env.BASE_URL }}/form.html
-          # increase timeout to allow npm install and server startup to complete
-          wait-on-timeout: 120
-          command: npx cypress run --headless --reporter mocha-junit-reporter --reporter-options mochaFile=reports/junit-$(date +%s).xml
+          name: cypress-mochawesome
+          path: cypress/results/index.json
+          reporter: mochawesome
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
 
       - name: Upload traces artifact
         uses: actions/upload-artifact@v4
@@ -74,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cypress-report
-          path: reports
+          path: public
 
   fakerize:
     name: Fakerize traces

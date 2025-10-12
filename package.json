@@ -5,6 +5,9 @@
   "scripts": {
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
+    "test:chrome": "cypress run --browser chrome --reporter mochawesome --reporter-options reportDir=cypress/results/json,quiet=true,overwrite=false,html=false,json=true",
+    "report:merge": "mochawesome-merge cypress/results/json/*.json > cypress/results/index.json",
+    "report:generate": "marge cypress/results/index.json --reportDir public --assetsDir public/assets --reportPageTitle 'Cypress Report'",
     "generate:traces": "node tools/generate_traces.js",
     "generate:traces:seeded": "node tools/generate_traces.js --seed",
     "fakerize": "node tools/fakerizeNetworkLog.js",
@@ -22,6 +25,9 @@
   "devDependencies": {
     "cypress": "^12.0.0",
     "cypress-file-upload": "^5.0.8",
-    "mocha-junit-reporter": "^2.2.1"
+    
+    "mochawesome": "^7.1.3",
+    "mochawesome-merge": "^4.2.0",
+    "mochawesome-report-generator": "^6.0.0"
   }
 }
