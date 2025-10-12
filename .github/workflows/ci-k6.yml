@@ -81,7 +81,10 @@ jobs:
         with:
           name: cypress-mochawesome
           path: cypress/results/index.json
-          # reporter omitted so the action can detect the format automatically
+          reporter: mocha
+          # Recommended options you can enable as needed:
+          # max-annotations: 10
+          # fail-on-empty: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
