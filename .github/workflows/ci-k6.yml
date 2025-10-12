@@ -93,6 +93,12 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Download traces artifact from capture
+        uses: actions/download-artifact@v4
+        with:
+          name: traces
+          path: out
+
       - name: Generate fakerized traces
         run: node tools/generate_traces.js
 
