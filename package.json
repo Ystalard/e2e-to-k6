@@ -8,7 +8,6 @@
     "generate:traces": "node tools/generate_traces.js",
     "generate:traces:seeded": "node tools/generate_traces.js --seed",
     "fakerize": "node tools/fakerizeNetworkLog.js",
-    "test:k6": "docker run --rm -v ${PWD}:/scripts -w /scripts grafana/k6 run k6-script.js",
     "test:k6:local": "k6 run k6-script.js",
     "start:test-server": "node test-site/server.js",
     "poc:local": "node tools/run_local_poc.js"

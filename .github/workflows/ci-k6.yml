@@ -52,6 +52,23 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Start test server (background) and wait
+        run: |
+          # start the test server in the background and save its pid
+          nohup npm run start:test-server > server.log 2>&1 &
+          echo $! > server.pid
+          # wait for the server to respond on BASE_URL (default http://localhost:3000)
+          for i in $(seq 1 20); do
+            if curl -sSf "$BASE_URL" >/dev/null 2>&1; then
+              echo "Test server is up"
+              break
+            fi
+            echo "Waiting for test server... ($i)"
+            sleep 1
+          done
+          # print a short tail of the server log for debugging
+          tail -n 50 server.log || true
+
       - name: Run Cypress (headless) and capture traces
         run: npx cypress run --headless
 
