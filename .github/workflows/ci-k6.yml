@@ -75,19 +75,6 @@ jobs:
       - name: Generate HTML report
         run: npm run report:generate
 
-      - name: Post test annotations
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: cypress-mochawesome
-          path: cypress/results/index.json
-          reporter: mocha
-          # Recommended options you can enable as needed:
-          # max-annotations: 10
-          # fail-on-empty: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Publish report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
