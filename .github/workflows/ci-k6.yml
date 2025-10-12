@@ -57,8 +57,10 @@ jobs:
         uses: cypress-io/github-action@v5
         with:
           start: npm run start:test-server
-          wait-on: ${{ env.BASE_URL }}
-          wait-on-timeout: 60
+          # wait for the static form page which returns 200; root (/) returns 404 in this app
+          wait-on: ${{ env.BASE_URL }}/form.html
+          # increase timeout to allow npm install and server startup to complete
+          wait-on-timeout: 120
           command: npx cypress run --headless --reporter mocha-junit-reporter --reporter-options mochaFile=reports/junit-$(date +%s).xml
 
       - name: Upload traces artifact
