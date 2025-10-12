@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Test Form</title>
+  </head>
+  <body>
+    <h1>Local Test Form</h1>
+    <form id="testForm">
+      <label>
+        Name: <input type="text" name="name" id="name" />
+      </label>
+      <br/>
+      <label>
+        Picture: <input type="file" name="file" id="file" />
+      </label>
+      <br/>
+      <div>
+        Gender:
+        <label><input type="radio" name="gender" value="male" checked /> Male</label>
+        <label><input type="radio" name="gender" value="female" /> Female</label>
+      </div>
+      <div>
+        Interests:
+        <label><input type="checkbox" name="interests" value="sports" /> Sports</label>
+        <label><input type="checkbox" name="interests" value="music" /> Music</label>
+        <label><input type="checkbox" name="interests" value="tech" /> Tech</label>
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+
+    <script>
+      document.getElementById('testForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const fd = new FormData(form);
+
+        try {
+          // Submit to local server endpoint
+          const res = await fetch('/api/submit', { method: 'POST', body: fd });
+          const json = await res.json().catch(() => null);
+          console.log('Submit response', json);
+
+          // Fire a secondary log request to create extra traffic
+          fetch('/api/log', { method: 'POST', body: JSON.stringify({ ts: Date.now() }), headers: { 'Content-Type': 'application/json' } });
+
+          alert('Submitted');
+        } catch (err) {
+          console.error(err);
+          alert('Submit failed');
+        }
+      });
+    </script>
+  </body>
+</html>

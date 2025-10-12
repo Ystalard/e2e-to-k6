@@ -1,0 +1,5 @@
+{
+  "__FIRST_NAME__": "person.firstName",
+  "__LAST_NAME__": "person.lastName",
+  "__EMAIL__": "internet.email"
+}

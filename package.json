@@ -1,0 +1,27 @@
+{
+  "name": "e2e-to-k6-poc",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "generate:traces": "node tools/generate_traces.js",
+    "generate:traces:seeded": "node tools/generate_traces.js --seed",
+    "fakerize": "node tools/fakerizeNetworkLog.js",
+    "test:k6": "docker run --rm -v ${PWD}:/scripts -w /scripts grafana/k6 run k6-script.js",
+    "test:k6:local": "k6 run k6-script.js",
+    "start:test-server": "node test-site/server.js",
+    "poc:local": "node tools/run_local_poc.js"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^8.1.0",
+    "express": "^4.18.2",
+    "js-yaml": "^4.1.0",
+    "minimist": "^1.2.8",
+    "multer": "^1.4.4"
+  },
+  "devDependencies": {
+    "cypress": "^12.0.0",
+    "cypress-file-upload": "^5.0.8"
+  }
+}

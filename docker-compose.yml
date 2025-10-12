@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  server:
+    build: .
+    working_dir: /app
+    volumes:
+      - ./:/app:delegated
+    command: ["node", "test-site/server.js"]
+    ports:
+      - "3000:3000"
+
+  cypress:
+    image: cypress/included:12.17.4
+    depends_on:
+      - server
+    working_dir: /e2e
+    volumes:
+      - ./:/e2e:delegated
+    environment:
+      - CI=true
+    command: ["npx", "cypress", "run"]
+
+  fakerizer:
+    build: .
+    depends_on:
+      - cypress
+    working_dir: /app
+    volumes:
+      - ./:/app:delegated
+    command: ["node", "tools/generate_traces.js"]
+
+  k6:
+    image: grafana/k6:latest
+    depends_on:
+      - fakerizer
+    working_dir: /app
+    volumes:
+      - ./:/app:delegated
+    command: ["run", "k6-script.js"]

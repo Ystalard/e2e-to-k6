@@ -1,0 +1,179 @@
+# Azure DevOps multi-stage pipeline for e2e-to-k6 POC
+# Best-practice sample pipeline for Azure DevOps (free tier)
+# - small, separated stages: build/install, capture (Cypress), fakerize, loadtest
+# - cache Node/npm between runs
+# - publish artifacts (out/) for trace review and debugging
+# - load-test stage is gated (environment) to avoid accidental runs against production
+# NOTE: Configure any secrets (tokens) in the Azure Pipeline UI or Azure Key Vault and reference
+# them as pipeline variables or variable groups. Do NOT put secrets here in the YAML.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  # Change Node version here if needed
+  NODE_VERSION: '18'
+  # Default base URL used by k6-script.js when a captured URL is relative
+  BASE_URL: 'http://localhost:3000'
+
+stages:
+
+  - stage: Build
+    displayName: 'Install & build'
+    jobs:
+      - job: install
+        displayName: 'Install dependencies (cache npm)'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          # Cache npm package cache to speed up CI
+          - task: Cache@2
+            inputs:
+              key: "npm | $(Agent.OS) | package-lock.json"
+              restoreKeys: |
+                npm | $(Agent.OS)
+              path: ~/.npm
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '$(NODE_VERSION)'
+
+          - script: |
+              npm ci
+            displayName: 'npm ci'
+
+          - script: |
+              npm run build --if-present
+            displayName: 'optional: run build'
+
+  - stage: Capture
+    displayName: 'Capture (Cypress)'
+    dependsOn: Build
+    jobs:
+      - job: cypress_capture
+        displayName: 'Run Cypress to capture network traces'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '$(NODE_VERSION)'
+
+          - script: |
+              npm ci
+            displayName: 'Install dependencies'
+
+          # If your Cypress tests need additional libs, add them here. We run headless.
+          - script: |
+              npx cypress run --headless
+            displayName: 'Run Cypress (capture)'
+
+          - publish: out
+            artifact: traces
+            displayName: 'Publish captured traces (out/)'
+
+  - stage: Fakerize
+    displayName: 'Fakerize traces'
+    dependsOn: Capture
+    jobs:
+      - job: fakerize
+        displayName: 'Generate fakerized traces'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '$(NODE_VERSION)'
+
+          - script: |
+              npm ci
+            displayName: 'Install dependencies'
+
+          - script: |
+              node tools/generate_traces.js
+            displayName: 'Generate fakerized traces'
+
+          - publish: out
+            artifact: fakerized-traces
+            displayName: 'Publish fakerized traces (out/)'
+
+  - stage: LoadTest
+    displayName: 'Load test (k6) - gated'
+    dependsOn: Fakerize
+    condition: succeeded()
+    jobs:
+      - deployment: run_k6
+        displayName: 'Run k6 against fakerized traces'
+        environment: 'load-testing' # recommend configuring approvals for this environment
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - script: |
+                    echo "Using BASE_URL=$(BASE_URL)"
+                  displayName: 'Log base URL'
+
+                # Ensure Docker is available on the agent. Use docker run to execute grafana/k6.
+                - script: |
+                    docker --version || true
+                    docker run --rm -v $(System.DefaultWorkingDirectory):/scripts -w /scripts grafana/k6 run k6-script.js --env BASE_URL=$(BASE_URL)
+                  displayName: 'Run k6 in Docker container (grafana/k6)'
+                  env:
+                    # Do not store secrets in YAML; add secrets in the pipeline variables or Azure Key Vault
+                    # EXAMPLE_TOKEN: $(MY_SECRET_TOKEN)
+
+                - task: PublishPipelineArtifact@1
+                  inputs:
+                    targetPath: 'out'
+                    artifact: 'k6-results'
+                  displayName: 'Publish k6 results (out/)'
+
+# Notes & guidance
+# - The LoadTest stage is tied to the 'load-testing' environment. Configure environment approvals
+#   in the Azure DevOps project settings to require manual approval before running this stage.
+# - For a fully containerized CI, consider running Node/Cypress inside containers and using self-hosted
+#   agents when you need more parallelism than the free tier provides. Free tier provides limited parallel
+#   jobs; prefer serial stages or light parallelism.trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm install
+    displayName: 'Install dependencies'
+
+  - script: |
+      npm run generate:traces
+    displayName: 'Generate fakerized traces'
+
+  - script: |
+      docker run --rm -v $(pwd):/scripts -w /scripts grafana/k6 run k6-script.js
+    displayName: 'Run k6 test'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: 'out'
+      artifactName: 'traces'
+      publishLocation: 'Container'
+    displayName: 'Publish traces'

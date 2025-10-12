@@ -1,0 +1,8 @@
+node_modules
+out
+cypress/videos
+cypress/screenshots
+test-site/data
+test-site/uploads
+.git
+.DS_Store
