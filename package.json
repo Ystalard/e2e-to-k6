@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "cypress": "^12.0.0",
-    "cypress-file-upload": "^5.0.8"
+    "cypress-file-upload": "^5.0.8",
+    "mocha-junit-reporter": "^2.2.1"
   }
 }
