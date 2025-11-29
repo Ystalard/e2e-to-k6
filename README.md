@@ -1,3 +1,4 @@
+[![CI - e2e to k6](https://github.com/Ystalard/e2e-to-k6/actions/workflows/ci-k6.yml/badge.svg)](https://github.com/Ystalard/e2e-to-k6/actions/workflows/ci-k6.yml)
 # e2e-to-k6 POC
 
 This repository contains a proof-of-concept that captures browser network traffic with Cypress, fakerizes sensitive values, and replays traces in k6 for load testing.
